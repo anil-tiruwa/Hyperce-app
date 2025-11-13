@@ -1,0 +1,49 @@
+name: CI/CD Pipeline
+
+# Trigger workflow on push or PR to main branch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Docker
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # Step 3: Build Docker image
+    - name: Build Docker image
+      run: docker build -t devops-test-app:latest .
+
+    # Step 4: Run Docker container
+    - name: Run Docker container
+      run: |
+        docker run -d --name devops-test-app -p 3000:3000 devops-test-app:latest
+        sleep 5  # wait for container to start
+
+    # Step 5: Test the app
+    - name: Test app with curl
+      run: |
+        if curl --fail http://localhost:3000; then
+          echo "Build and Test passed"
+        else
+          echo "Test failed"
+          exit 1
+        fi
+
+    # Step 6: Clean up Docker container
+    - name: Stop and remove Docker container
+      run: |
+        docker stop devops-test-app
+        docker rm devops-test-app
